@@ -1,122 +1,87 @@
 import React, { Component } from 'react';
 import logo from './logo.svg';
 import './App.css';
-import { AgGridReact } from 'ag-grid-react';
-import { AgGridColumn } from 'ag-grid-react';
-import 'ag-grid-community/dist/styles/ag-grid.css';
-import 'ag-grid-community/dist/styles/ag-theme-balham.css';
+import Reactable from 'reactable';
+import Tr from 'reactable';
 
 class App extends Component {
-  constructor(props) {
-    super(props);
-
+  constructor() {
+    super();
     this.state = {
-        columnDefs: [
-            {headerName: "Make", field: "make"},
-            {headerName: "Model", field: "model"},
-            {headerName: "Price", field: "price"}
-
-        ],
-        rowData: [
-            {make: "Toyota", model: "Celica", price: 35000},
-            {make: "Ford", model: "Mondeo", price: 32000},
-            {make: "Porsche", model: "Boxter", price: 72000}
-        ]
+      rawData:[],
+      content:[],
+      name:[],
+      count: 0
     }
   }
 
-  objectFieldSort(listings1,listings2) {
-  var finals = [];
-  var keys= listings1;
-  var commonKeys=listings2;
-  var i;
-  var currentKey;
-  var currentVal;
-  var result = {}
-  for (i = 0; i < keys.length; i++) {
-      currentKey = commonKeys[i];
-      currentVal = keys[i];
-      result[currentKey] = currentVal;
-      finals.push(result)
-  }
-  this.setState({rowData: finals})
-  }
-
-  columnFunc(listings1) {
-    var finals = [];
-    for(var i = 0; i < listings1.length; i++) {
-      var item = listings1[i];
-      while(i < 6) {
-      var newObj = {}
-      newObj.headerName = item;
-      newObj.field = item;
-      finals.push(newObj);
-    }
-  }
-    this.setState({columnDefs:finals})
-  }
-
-
-
-
-  sortClick() {
+  sortData(x) {
     var key;
-    var object;
-    var property;
-    var listings1 = [];
-    var listings2 = [];
-    var names = ['symbol=AAPL','symbol=MSFT','symbol=V','symbol=TSLA']
-    names.map(i => {
-      fetch('https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&' + i  + '&interval=5min&apikey=PW729TH2CCY2065P')
-      .then(response => response.json())
-      .then(response => {
-        for(property in response) {
-          if(property === "Meta Data"){
-            for(key in response["Meta Data"]) {
-              listings1.push(response["Meta Data"][key]);
-
-            }
-            this.columnFunc(listings1)
-          }
-
-          if(property === "Time Series (5min)") {
-            for(key in response["Time Series (5min)"]) {
-            listings2.push(response["Time Series (5min)"][key]);
-            }
-            this.objectFieldSort(listings1,listings2)
-          }
+    var finalData = [];
+    var finalHeader = [];
+    for(key in x) {
+      if(key === "Meta Data") {
+        finalHeader.push(x[key])
+        this.setState({name:finalHeader})
       }
-    })
+      if(key === "Time Series Weekly") {
+        finalData.push(x[key])
+        this.setState({content:finalData})
+      }
+
+    }
+  }
+
+  objSort(obj) {
+    var key;
+    var finals = [];
+    for(key in obj) {
+      finals.push(obj[key])
+    }
+    console.log(finals)
+    return finals;
+  }
+componentWillMount() {
+  var key;
+  fetch("https://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY&symbol=MSFT&apikey=PW729TH2CCY2065P")
+  .then(response => response.json())
+  .then(response => {
+  this.setState({rawData:response})
+  this.setState({name:this.objSort(response["Meta Data"])})
+  this.setState({content:this.objSort(response["Weekly Time Series"])})
   })
 }
 
-
-
-
-  componentWillMount() {
-      this.sortClick()
+render() {
+  var key;
+  const listItems = this.state.name.map((name,index) => {
+    for(key in name) { return (
+      <div className={index}>
+    <th key={index}>{name[key]}</th>
+    <br />
+    </div>
+  )}
+})
+const listRows = this.state.content.map((name,index) => {
+  for(key in name) {
+  return (
+  <div className={index}>
+  <td key={index}>{name[key]}</td>
+  <br />
+  </div>
+  )}
+})
+  return (
+    <div className="outer-wall">
+    <table>
+    <thead>
+    <tr>{listItems}</tr>
+    <tr>{listRows}</tr>
+    </thead>
+    </table>
+      </div>
+    )
   }
-
-
-  handleClick = () => {
-    this.sortClick();
-    }
-
-    render() {
-        return (
-            <div
-                className="ag-theme-balham"
-                style={{ height: '600px', width: '1200px' }}
-            >
-                <AgGridReact
-                    enableSorting={true}
-                    columnDefs={this.state.columnDefs}
-                    rowData={this.state.rowData}>
-                </AgGridReact>
-            <button onClick={this.handleClick}></button>
-            </div>
-        );
-    }
 }
 
 export default App;
